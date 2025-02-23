@@ -5,21 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lịch Chấm Công 2025</title>
     <style>
-        body { font-family: Tahoma, sans-serif; text-align: center; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px; }
-        .summary { font-size: 1.2em; font-weight: bold; }
-        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; justify-content: center; max-width: 400px; margin: auto; }
+        body { font-family: Tahoma, sans-serif; text-align: center; margin: 0; padding: 0; }
+        .header { display: flex; flex-direction: column; align-items: center; padding: 10px; }
+        .summary { font-size: 1em; font-weight: bold; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; justify-content: center; max-width: 95vw; margin: auto; }
         .month-container { display: none; }
-        .day { position: relative; padding: 10px; border: 1px solid #ccc; text-align: center; border-radius: 5px; }
+        .day { position: relative; padding: 5px; border: 1px solid #ccc; text-align: center; border-radius: 5px; font-size: 0.8em; min-width: 40px; min-height: 50px; }
         .leave { background-color: red; }
         .holiday { background-color: lightgreen; }
         .sunday { background-color: pink; }
         select:disabled { background-color: #f0f0f0; }
-        .overtime-display { position: absolute; top: 5px; left: 5px; font-weight: bold; font-size: 1.2em; color: darkblue; }
+        .overtime-display { position: absolute; top: 2px; left: 2px; font-weight: bold; font-size: 0.7em; color: darkblue; }
         .buttons { margin-top: 10px; }
         .buttons button { padding: 10px; font-size: 1em; cursor: pointer; }
-        h1 { font-size: 1.5em; margin-bottom: 5px; }
-        .subtitle { font-size: 0.9em; color: gray; }
+        h1 { font-size: 1.3em; margin-bottom: 5px; }
+        .subtitle { font-size: 0.8em; color: gray; }
+        .options { font-size: 0.7em; margin-top: 3px; }
     </style>
 </head>
 <body>
@@ -51,93 +52,99 @@
         <button onclick="exitApp()">Thoát</button>
     </div>
     <script>
-        const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        let data = JSON.parse(localStorage.getItem("workSchedule")) || {};
+        let totalHours = 0;
+        let sundayHours = 0;
 
-        function createCalendar() {
-            const calendar = document.getElementById("calendar");
-            for (let mIndex = 0; mIndex < 12; mIndex++) {
-                const monthDiv = document.createElement("div");
+        function generateCalendar() {
+            const calendarDiv = document.getElementById("calendar");
+            const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+            
+            for (let month = 1; month <= 12; month++) {
+                let monthDiv = document.createElement("div");
                 monthDiv.className = "month-container";
-                monthDiv.id = `month-${mIndex + 1}`;
-                monthDiv.style.display = "none";
-                monthDiv.classList.add("calendar");
-
-                for (let d = 1; d <= daysInMonth[mIndex]; d++) {
-                    const key = `${mIndex + 1}-${d}`;
-                    const date = new Date(2025, mIndex, d);
-                    const isSunday = date.getDay() === 0;
-                    const dayDiv = document.createElement("div");
+                monthDiv.id = `month-${month}`;
+                
+                let calendarGrid = document.createElement("div");
+                calendarGrid.className = "calendar";
+                
+                for (let wd of weekdays) {
+                    let dayHeader = document.createElement("div");
+                    dayHeader.textContent = wd;
+                    dayHeader.style.fontWeight = "bold";
+                    calendarGrid.appendChild(dayHeader);
+                }
+                
+                for (let day = 1; day <= daysInMonth[month - 1]; day++) {
+                    let dayDiv = document.createElement("div");
                     dayDiv.className = "day";
-                    if (isSunday) dayDiv.classList.add("sunday");
-                    dayDiv.innerHTML = `<strong>${d}</strong>`;
                     
-                    const select = document.createElement("select");
-                    select.innerHTML = `
-                        <option value="">Chọn</option>
+                    let date = new Date(2025, month - 1, day);
+                    let weekday = weekdays[date.getDay()];
+                    
+                    if (date.getDay() === 0) {
+                        dayDiv.classList.add("sunday");
+                    }
+                    
+                    dayDiv.innerHTML = `<strong>${day}</strong><br><span class='weekday'>${weekday}</span>`;
+                    
+                    let options = document.createElement("div");
+                    options.className = "options";
+                    let overtimeOptions = `
                         <option value="0">0h</option>
                         <option value="0.5">0.5h</option>
                         <option value="1">1h</option>
                         <option value="2">2h</option>
                         <option value="3">3h</option>
                         <option value="4">4h</option>
+                        <option value="5">5h</option>
                         <option value="6">6h</option>
+                        <option value="7">7h</option>
                         <option value="8">8h</option>
-                        <option value="10">10h</option>
-                    `;
-                    const overtimeDisplay = document.createElement("div");
-                    overtimeDisplay.className = "overtime-display";
+                        <option value="9">9h</option>
+                        <option value="10">10h</option>`;
                     
-                    if (data[key]) {
-                        if (data[key].overtime) {
-                            select.value = data[key].overtime;
-                            overtimeDisplay.innerText = data[key].overtime + "h";
-                        }
+                    if (date.getDay() === 0) {
+                        overtimeOptions += `
+                        <option value="11">11h</option>
+                        <option value="12">12h</option>
+                        <option value="13">13h</option>`;
                     }
-                    select.onchange = function() { 
-                        saveSelection(key, select.value, overtimeDisplay, isSunday); 
-                    };
-                    dayDiv.appendChild(overtimeDisplay);
-                    dayDiv.appendChild(select);
-                    monthDiv.appendChild(dayDiv);
+                    
+                    options.innerHTML = `
+                        <select onchange="updateOvertime(this, ${date.getDay()})">
+                            ${overtimeOptions}
+                        </select>`;
+                    dayDiv.appendChild(options);
+                    calendarGrid.appendChild(dayDiv);
                 }
-                calendar.appendChild(monthDiv);
+                
+                monthDiv.appendChild(calendarGrid);
+                calendarDiv.appendChild(monthDiv);
             }
         }
 
-        function saveSelection(key, value, display, isSunday) {
-            if (!data[key]) data[key] = {};
-            data[key].overtime = value;
-            display.innerText = value ? value + "h" : "";
-            localStorage.setItem("workSchedule", JSON.stringify(data));
-            updateTotalHours();
+        function updateOvertime(select, dayOfWeek) {
+            let hours = parseFloat(select.value);
+            if (dayOfWeek === 0) {
+                sundayHours += hours;
+            } else {
+                totalHours += hours;
+            }
+            document.getElementById("totalHours").textContent = totalHours;
+            document.getElementById("sundayHours").textContent = sundayHours;
         }
-
+        
         function showMonth() {
-            document.querySelectorAll(".month-container").forEach(m => m.style.display = "none");
-            const selectedMonth = document.getElementById("monthSelect").value;
-            if (selectedMonth) document.getElementById(`month-${selectedMonth}`).style.display = "grid";
-            updateTotalHours();
-        }
-
-        function updateTotalHours() {
-            let total = 0, sundayTotal = 0;
-            const selectedMonth = document.getElementById("monthSelect").value;
-            for (let key in data) {
-                let [month, day] = key.split('-');
-                if (month == selectedMonth && data[key].overtime) {
-                    if (new Date(2025, month - 1, day).getDay() === 0) {
-                        sundayTotal += parseFloat(data[key].overtime);
-                    } else {
-                        total += parseFloat(data[key].overtime);
-                    }
-                }
+            document.querySelectorAll(".month-container").forEach(div => div.style.display = "none");
+            let selectedMonth = document.getElementById("monthSelect").value;
+            if (selectedMonth) {
+                document.getElementById(`month-${selectedMonth}`).style.display = "grid";
             }
-            document.getElementById("totalHours").innerText = total;
-            document.getElementById("sundayHours").innerText = sundayTotal;
         }
-
-        createCalendar();
+        
+        generateCalendar();
     </script>
 </body>
 </html>
+
