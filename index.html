@@ -97,11 +97,25 @@
                 monthDiv.appendChild(calendarGrid);
                 calendarDiv.appendChild(monthDiv);
             }
+            updateTotalHours();
         }
 
         function updateOvertime(select, month, day) {
             data[`${month}-${day}`] = select.value;
             localStorage.setItem("attendanceData", JSON.stringify(data));
+            updateTotalHours();
+        }
+
+        function updateTotalHours() {
+            let total = 0, sundayTotal = 0;
+            for (let key in data) {
+                let [month, day] = key.split("-").map(Number);
+                let date = new Date(2025, month - 1, day);
+                if (date.getDay() === 0) sundayTotal += parseFloat(data[key]);
+                else total += parseFloat(data[key]);
+            }
+            document.getElementById("totalHours").textContent = total;
+            document.getElementById("sundayHours").textContent = sundayTotal;
         }
 
         function showMonth() {
