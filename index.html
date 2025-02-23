@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Chấm Công 2025</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; text-align: center; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px; }
+        .summary { font-size: 1.2em; font-weight: bold; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; justify-content: center; max-width: 400px; margin: auto; }
+        .month-container { display: none; }
+        .day { position: relative; padding: 10px; border: 1px solid #ccc; text-align: center; border-radius: 5px; }
+        .leave { background-color: red; }
+        .holiday { background-color: lightgreen; }
+        .sunday { background-color: pink; }
+        select:disabled { background-color: #f0f0f0; }
+        .overtime-display { position: absolute; top: 5px; left: 5px; font-weight: bold; font-size: 1.2em; color: darkblue; }
+        .buttons { margin-top: 10px; }
+        .buttons button { padding: 10px; font-size: 1em; cursor: pointer; }
+        h1 { font-size: 1.5em; margin-bottom: 5px; }
+        .subtitle { font-size: 0.9em; color: gray; }
+    </style>
+</head>
+<body>
+    <h1>Lịch Chấm Công 2025</h1>
+    <div class="subtitle">Developed by Hưng</div>
+    <div class="header">
+        <select id="monthSelect" onchange="showMonth()">
+            <option value="">Chọn tháng</option>
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+        </select>
+        <div class="summary">
+            TC Thường: <span id="totalHours">0</span>h | CN: <span id="sundayHours">0</span>h
+        </div>
+    </div>
+    <div id="calendar"></div>
+    <div class="buttons">
+        <button onclick="saveData()">Lưu</button>
+        <button onclick="exitApp()">Thoát</button>
+    </div>
+    <script>
+        const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let data = JSON.parse(localStorage.getItem("workSchedule")) || {};
+
+        function createCalendar() {
+            const calendar = document.getElementById("calendar");
+            for (let mIndex = 0; mIndex < 12; mIndex++) {
+                const monthDiv = document.createElement("div");
+                monthDiv.className = "month-container";
+                monthDiv.id = `month-${mIndex + 1}`;
+                monthDiv.style.display = "none";
+                monthDiv.classList.add("calendar");
+
+                for (let d = 1; d <= daysInMonth[mIndex]; d++) {
+                    const key = `${mIndex + 1}-${d}`;
+                    const date = new Date(2025, mIndex, d);
+                    const isSunday = date.getDay() === 0;
+                    const dayDiv = document.createElement("div");
+                    dayDiv.className = "day";
+                    if (isSunday) dayDiv.classList.add("sunday");
+                    dayDiv.innerHTML = `<strong>${d}</strong>`;
+                    
+                    const select = document.createElement("select");
+                    select.innerHTML = `
+                        <option value="">Chọn</option>
+                        <option value="0">0h</option>
+                        <option value="0.5">0.5h</option>
+                        <option value="1">1h</option>
+                        <option value="2">2h</option>
+                        <option value="3">3h</option>
+                        <option value="4">4h</option>
+                        <option value="6">6h</option>
+                        <option value="8">8h</option>
+                        <option value="10">10h</option>
+                    `;
+                    const overtimeDisplay = document.createElement("div");
+                    overtimeDisplay.className = "overtime-display";
+                    
+                    if (data[key]) {
+                        if (data[key].overtime) {
+                            select.value = data[key].overtime;
+                            overtimeDisplay.innerText = data[key].overtime + "h";
+                        }
+                    }
+                    select.onchange = function() { 
+                        saveSelection(key, select.value, overtimeDisplay, isSunday); 
+                    };
+                    dayDiv.appendChild(overtimeDisplay);
+                    dayDiv.appendChild(select);
+                    monthDiv.appendChild(dayDiv);
+                }
+                calendar.appendChild(monthDiv);
+            }
+        }
+
+        function saveSelection(key, value, display, isSunday) {
+            if (!data[key]) data[key] = {};
+            data[key].overtime = value;
+            display.innerText = value ? value + "h" : "";
+            localStorage.setItem("workSchedule", JSON.stringify(data));
+            updateTotalHours();
+        }
+
+        function showMonth() {
+            document.querySelectorAll(".month-container").forEach(m => m.style.display = "none");
+            const selectedMonth = document.getElementById("monthSelect").value;
+            if (selectedMonth) document.getElementById(`month-${selectedMonth}`).style.display = "grid";
+            updateTotalHours();
+        }
+
+        function updateTotalHours() {
+            let total = 0, sundayTotal = 0;
+            const selectedMonth = document.getElementById("monthSelect").value;
+            for (let key in data) {
+                let [month, day] = key.split('-');
+                if (month == selectedMonth && data[key].overtime) {
+                    if (new Date(2025, month - 1, day).getDay() === 0) {
+                        sundayTotal += parseFloat(data[key].overtime);
+                    } else {
+                        total += parseFloat(data[key].overtime);
+                    }
+                }
+            }
+            document.getElementById("totalHours").innerText = total;
+            document.getElementById("sundayHours").innerText = sundayTotal;
+        }
+
+        createCalendar();
+    </script>
+</body>
+</html>
