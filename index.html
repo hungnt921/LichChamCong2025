@@ -47,13 +47,8 @@
         </div>
     </div>
     <div id="calendar"></div>
-    <div class="buttons">
-        <button onclick="saveData()">Lưu</button>
-        <button onclick="exitApp()">Thoát</button>
-    </div>
     <script>
-        let totalHours = 0;
-        let sundayHours = 0;
+        let data = JSON.parse(localStorage.getItem("attendanceData")) || {};
 
         function generateCalendar() {
             const calendarDiv = document.getElementById("calendar");
@@ -78,63 +73,37 @@
                 for (let day = 1; day <= daysInMonth[month - 1]; day++) {
                     let dayDiv = document.createElement("div");
                     dayDiv.className = "day";
-                    
                     let date = new Date(2025, month - 1, day);
                     let weekday = weekdays[date.getDay()];
-                    
-                    if (date.getDay() === 0) {
-                        dayDiv.classList.add("sunday");
-                    }
-                    
+                    if (date.getDay() === 0) dayDiv.classList.add("sunday");
                     dayDiv.innerHTML = `<strong>${day}</strong><br><span class='weekday'>${weekday}</span>`;
-                    
                     let options = document.createElement("div");
                     options.className = "options";
-                    let overtimeOptions = `
-                        <option value="0">0h</option>
-                        <option value="0.5">0.5h</option>
-                        <option value="1">1h</option>
-                        <option value="2">2h</option>
-                        <option value="3">3h</option>
-                        <option value="4">4h</option>
-                        <option value="5">5h</option>
-                        <option value="6">6h</option>
-                        <option value="7">7h</option>
-                        <option value="8">8h</option>
-                        <option value="9">9h</option>
-                        <option value="10">10h</option>`;
-                    
-                    if (date.getDay() === 0) {
-                        overtimeOptions += `
-                        <option value="11">11h</option>
-                        <option value="12">12h</option>
-                        <option value="13">13h</option>`;
+                    let overtimeOptions = "<option value='0'>0h</option>";
+                    for (let i = 0.5; i <= 10; i += 0.5) {
+                        overtimeOptions += `<option value='${i}'>${i}h</option>`;
                     }
-                    
-                    options.innerHTML = `
-                        <select onchange="updateOvertime(this, ${date.getDay()})">
-                            ${overtimeOptions}
-                        </select>`;
+                    if (date.getDay() === 0) {
+                        for (let i = 11; i <= 13; i++) {
+                            overtimeOptions += `<option value='${i}'>${i}h</option>`;
+                        }
+                    }
+                    options.innerHTML = `<select onchange="updateOvertime(this, ${month}, ${day})">${overtimeOptions}</select>`;
+                    let storedValue = data[`${month}-${day}`] || "0";
+                    options.querySelector("select").value = storedValue;
                     dayDiv.appendChild(options);
                     calendarGrid.appendChild(dayDiv);
                 }
-                
                 monthDiv.appendChild(calendarGrid);
                 calendarDiv.appendChild(monthDiv);
             }
         }
 
-        function updateOvertime(select, dayOfWeek) {
-            let hours = parseFloat(select.value);
-            if (dayOfWeek === 0) {
-                sundayHours += hours;
-            } else {
-                totalHours += hours;
-            }
-            document.getElementById("totalHours").textContent = totalHours;
-            document.getElementById("sundayHours").textContent = sundayHours;
+        function updateOvertime(select, month, day) {
+            data[`${month}-${day}`] = select.value;
+            localStorage.setItem("attendanceData", JSON.stringify(data));
         }
-        
+
         function showMonth() {
             document.querySelectorAll(".month-container").forEach(div => div.style.display = "none");
             let selectedMonth = document.getElementById("monthSelect").value;
@@ -147,4 +116,3 @@
     </script>
 </body>
 </html>
-
